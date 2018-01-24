@@ -1,4 +1,4 @@
-![Logo of the project](https://raw.githubusercontent.com/TnTripp/cloud-gaming-server/master/cgs-logo.png)
+![Logo of the project](https://github.com/TnTripp/cloud-gaming-server/blob/master/cgs-logo.png)
 
 # cloud-gaming-server
 Scripts and configurations used to operate a cloud based gaming server.

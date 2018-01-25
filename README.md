@@ -56,10 +56,15 @@ And again you'd need to tell what the previous code actually does.
 
 ## Features
 
-What's all the bells and whistles this project can perform?
-* What's the main functionality
-* You can also do another thing
-* If you get really randy, you can even do this
+* Run multiple game servers off a single cloud instance
+* Easy management of game servers through consistant script commands
+  * Start, Stop, Save, Status
+* Automatic server start at instance boot
+* Automatic save and clean shutdown at instance stop
+* Monitor game activite and shutdown when no one has played after a configurable amount of time
+* Integration point to control instance start and stop through external services
+  * Amazon Echo
+  * IoT (coming soon)
 
 ## Configuration
 

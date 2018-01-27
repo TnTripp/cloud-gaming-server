@@ -1,0 +1,145 @@
+#!/bin/bash
+# Config
+PORT=27000
+GALAXY=ALMI
+GALAXY_PATH=$HOME/galaxies
+SCREEN_SESSION=avorion_server
+INSTALL_DIR=$HOME/serverfiles
+STEAM_DIR=$HOME/steamcmd
+PARAMS='--public true --listed true --use-steam-networking true --same-start-sector false --threads 4' # http://wiki.avorion.net/index.php?title=Server
+# Colors
+WHITE='\033[1;37m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+PURPLE='\033[1;35m'
+NOCOLOR='\033[0m'
+# Static
+#APPID FOR AVORION APP
+APPID=565060 
+STEAM_ID=76561198018644403
+SERVER=AvorionServer
+MANAGER_DIR=$(pwd)
+S="screen -S "${SCREEN_SESSION}" -p 0 -X stuff "
+E="\$(echo -ne '\015')"
+P='echo -e -n '${WHITE}'[Avorion]'${NOCOLOR}':'
+# Main: start, stop, kill, restart, status, steam, attach, help, test*
+case $1 in
+	"start")
+		$0 cleanlog
+		cd ${INSTALL_DIR}
+		export LD_LIBRARY_PATH=${INSTALL_DIR}/linux_64
+		if screen -S ${SCREEN_SESSION} -d -m ${INSTALL_DIR}/bin/${SERVER} --port ${PORT} --galaxy-name ${GALAXY} --admin ${STEAM_ID} --datapath ${GALAXY_PATH} > ${INSTALL_DIR}/avorion_output
+		then
+			$P; echo -e " starting ${PURPLE}${SERVER}${NOCOLOR} on ${YELLOW}${PORT}${NOCOLOR}"
+			sleep 1
+			if pidof ${SERVER} > /dev/null;
+			then
+				$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} has started with pid ${YELLOW}$(pidof ${SERVER})${NOCOLOR}"
+			else
+				$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} could not be started!"
+			fi
+		else 
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is already running!"
+		fi
+	;;
+	"test")
+	  echo ${S}"'/stop'"${E}
+	;;
+	"save")
+		if pidof ${SERVER} > /dev/null
+		then
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is saving"
+			screen -S ${SCREEN_SESSION} -p 0 -X stuff '/save'$(echo -ne '\015')
+			sleep 2
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} has been saved."
+		else
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is not running currently!"
+		fi
+	;;
+	"stop")
+		$0 save
+		$0 kill
+	;;	
+	"kill")
+		if pidof ${SERVER} > /dev/null
+		then
+			$P; echo -e -n " ${PURPLE}${SERVER}${NOCOLOR} is being stopped"
+			screen -S ${SCREEN_SESSION} -p 0 -X stuff '/stop'$(echo -ne '\015')
+			while pidof ${SERVER} > /dev/null;
+			do
+				echo -n "."
+				sleep 2
+			done
+			echo ""
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} has been stopped."
+		else
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is not running currently!"
+		fi
+	;;
+	"attach")
+		if pidof ${SERVER} > /dev/null
+		then
+			$P; echo -e " press ${RED}Ctrl+A${NOCOLOR} then ${RED}D${NOCOLOR} to detach. Confirm to continue..."
+			read -n 1 -s
+			screen -r ${SCREEN_SESSION}
+		else
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is not running!"
+		fi
+	;;
+	"cleanlog")
+		$P; echo -e " removing old log files..."
+		rm ${GALAXY_PATH}/${GALAXY}/serverlog*.txt
+	;;
+	"restart")
+		$P; echo -e " restarting ${PURPLE}${SERVER}${NOCOLOR}..."
+		$0 stop
+		$0 start
+	;;
+	"status")
+		if pidof ${SERVER} > /dev/null
+		then
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is running with pid ${YELLOW}$(pidof ${SERVER})${NOCOLOR}."
+			screen -S ${SCREEN_SESSION} -p 0 -X stuff '/status'$(echo -ne '\015')
+			sleep 1
+			tail -n 13 ${GALAXY_PATH}/${GALAXY}/serverlog*
+		else
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is not running."
+		fi
+	;;
+	"update")
+		if pidof ${SERVER} > /dev/null
+		then
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} should not be running while updating."
+		else
+			$P; echo -e " steamcmd will now perform an update."
+			$STEAM_DIR/steamcmd.sh +login anonymous +force_install_dir ${INSTALL_DIR} +app_update ${APPID} validate +quit
+		fi
+	;;
+	"warning")
+		if pidof ${SERVER} > /dev/null
+		then
+			if echo $2 > /dev/null
+			then
+				screen -S ${SCREEN_SESSION} -p 0 -X stuff  "/say Server is going to restart in ${2} minutes."$(echo -ne '\015')
+			else
+				$P; echo -e " no time specified (./avorion warning <minutes>)."
+			fi
+		else
+			$P; echo -e " ${PURPLE}${SERVER}${NOCOLOR} is not running."
+		fi
+	;;
+	"install")
+		mkdir -p $STEAM_DIR
+		wget https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz
+		tar -zxvf steamcmd_linux.tar.gz -C $STEAM_DIR
+		$0 update
+	;;
+	"create")
+		$INSTALL_DIR/server.sh --galaxy-name $GALAXY --admin $STEAM_ID --datapath $GALAXY_PATH				
+		$Pl echo -e " Galaxy created."	
+	;;
+    *)
+		$P; echo -e " available commands:\n           ${GREEN}start${NOCOLOR} server,\n           ${GREEN}stop${NOCOLOR} server,\n           ${GREEN}restart${NOCOLOR} server,\n           check server's ${GREEN}status${NOCOLOR},\n           check for ${GREEN}update${NOCOLOR}s,\n           ${GREEN}attach${NOCOLOR} to console,\n           show this ${GREEN}help${NOCOLOR},\n           send ${GREEN}warning <minutes>${NOCOLOR} before restart,\n           ${GREEN}install${NOCOLOR} steamcmd"
+	;;
+esac
